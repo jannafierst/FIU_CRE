@@ -55,8 +55,43 @@ On the FIU HPC we run this with the help of a software package called singularit
 	Run RepeatModeler for de novo repeat identification and characterization
 
 	$ RepeatModeler -pa 8 -database [species_name]
+	
+	Here, I have formatted a slurm script for this portion:
+	
+	#!/bin/bash
+
+	#SBATCH --qos=pq_bsc4934-5935
+	#SBATCH --account=acc_bsc4934-5935
+
+	# Number of nodes
+	#SBATCH -N 1
+
+	# Number of tasks
+	#SBATCH -n 6
+
+	#SBATCH --output=log
+
+	##########################################################
+	# Setup envrionmental variable. 
+	##########################################################
+	export OMP_NUM_THREADS=$SLURM_CPUS_ON_NODE
+	. $MODULESHOME/../global/profile.modules
+
+	module load singularity-3.8.2
+
+	curl -sSLO https://github.com/Dfam-consortium/TETools/raw/master/dfam-tetools.sh
+	chmod +x dfam-tetools.sh
+	./dfam-tetools.sh
+
+	BuildDatabase -name Odolichura GCA_022343505.1_ASM2234350v1_genomic.fna
+
+	RepeatModeler -pa 8 -database Odolichura
+	
+	While that runs we can create library of known repeats with RepeatMasker.
 
 	Use the queryRepeatDatabase.pl script inside RepeatMasker/util to extract Rhabditida repeats
+	
+	$ module load RepeatMasker-4.1.0
 
 	$ queryRepeatDatabase.pl -species rhabditida | grep -v "Species:" > Rhabditida.repeatmasker
 
@@ -64,9 +99,10 @@ On the FIU HPC we run this with the help of a software package called singularit
 
 	$ cat RM*/consensi.fa.classified Rhabditida.repeatmasker > [species_name].repeats
 
-Finally, RepeatMasker creates a masked version of our assembled genome sequence. There are two versions of masking. Hard-masking means we replace every nucleotide in a repeat region with 'N' and soft-masking means we replace the normally capitalized nucleotides with lower-case nucleotides in repeat regions. Here we soft-mask (-xsmall) and do not mask low complexity elements (-nolow).
+Finally, we will use RepeatMasker to create a masked version of our assembled genome sequence. There are two versions of masking. Hard-masking means we replace every nucleotide in a repeat region with 'N' and soft-masking means we replace the normally capitalized nucleotides with lower-case nucleotides in repeat regions. Here we soft-mask (-xsmall) and do not mask low complexity elements (-nolow).
 
 	$ RepeatMasker -lib [species_name].repeats -pa 8 -xsmall -nolow [genome.fasta] 
+	
 
 ### 5.1.2 [EDTA](https://github.com/oushujun/EDTA)
 
