@@ -6,6 +6,18 @@ Comparative genomics, from annotation onwards (2022)
 ## PART 5: Annotation
 
 We have assembled sequences (ACGT etc) but how do we work with them? The first step is annotating genome features including transposable elements and protein-coding genes.
+
+We will be annotating sequences that were extracted, assembled and decontaminated by last year's CRE cohort. You can access them at the NCBI by searching for "Oscheius" and identifying the University of Alabama deposited sequences. Here, I will work you through one example - Oscheius dolichura.
+
+Obtain the assembled sequences here https://www.ncbi.nlm.nih.gov/assembly/GCA_022343505.1 through the side menu that says 'FTP directory for GenBank assembly.' You can click on this link then right click on the file name that ends with .fna. This is the NCBI notation for assembled genome sequences. Go back to your FIU HPC window, type
+
+	$ wget 
+	
+	And paste in the link you copied when you right-clicked on the file name. It should start a download and obtain the assembled sequence. It is transferred as a compressed (zipped) archive, unzip it like this
+	
+	$ gunzip GCA_022343505.1_ASM2234350v1_genomic.fna.gz 
+	
+	And you are ready to work.
     
 ### 5.1 Characterizing Repeats and Transposable Elements
 
@@ -13,13 +25,32 @@ We have assembled sequences (ACGT etc) but how do we work with them? The first s
 
 RepeatModeler creates a custom library of repeats found in your assembled genome sequence. We are using RepeatModeler through [TE-Tools](https://github.com/Dfam-consortium/TETools)
 
+On the FIU HPC we run this with the help of a software package called singularity. 
+	
+	We need to load the singularity module
+
+	$ module load singularity-3.8.2
+	
+	Install the TETools software
+
+	$ curl -sSLO https://github.com/Dfam-consortium/TETools/raw/master/dfam-tetools.sh
+	$ chmod +x dfam-tetools.sh
+
+	Once in the singularity environment (container) we have limited access to navigation and other UNIX tools. Before we launch the container, let's make sure the assembled sequence is in our directory
+	
+	$ ls *
+	
 	Launch the container
 
 	$ ./dfam-tetools.sh
 
-	Build the database
+	Now, we can build the database
 
 	$ BuildDatabase -name [species_name] [genome.fasta]
+	
+	For example, my command is
+	
+	$ BuildDatabase -name Odolichura ./GCA_022343505.1_ASM2234350v1_genomic.fna 
 	
 	Run RepeatModeler for de novo repeat identification and characterization
 
