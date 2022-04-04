@@ -21,43 +21,25 @@ Obtain the assembled sequences here https://www.ncbi.nlm.nih.gov/assembly/GCA_02
     
 ### 5.1 Characterizing Repeats and Transposable Elements
 
-### 5.1.1 [RepeatModeler](http://www.repeatmasker.org/)
+### 5.1.1 [RepeatMasker](http://www.repeatmasker.org/)
 
-RepeatModeler creates a custom library of repeats found in your assembled genome sequence. We are using RepeatModeler through [TE-Tools](https://github.com/Dfam-consortium/TETools)
+RepeatMasker is a clearinghouse for repeat-associated sequences in a variety of organisms. Here, we will use the RepeatMasker tools to create 
 
-On the FIU HPC we run this with the help of a software package called singularity. 
+	Use the queryRepeatDatabase.pl script inside RepeatMasker/util to extract Rhabditida repeats
 	
-	We need to load the singularity module
+	$ module load RepeatMasker-4.1.0
 
-	$ module load singularity-3.8.2
-	
-	Install the TETools software
+	$ queryRepeatDatabase.pl -species rhabditida | grep -v "Species:" > Rhabditida.repeatmasker
 
-	$ curl -sSLO https://github.com/Dfam-consortium/TETools/raw/master/dfam-tetools.sh
-	$ chmod +x dfam-tetools.sh
+Finally, we will use RepeatMasker to create a masked version of our assembled genome sequence. There are two versions of masking. Hard-masking means we replace every nucleotide in a repeat region with 'N' and soft-masking means we replace the normally capitalized nucleotides with lower-case nucleotides in repeat regions. Here we soft-mask (-xsmall) and do not mask low complexity elements (-nolow). This takes some time and we will use a slurm script to send the computations to a node.
 
-	Once in the singularity environment (container) we have limited access to navigation and other UNIX tools. Before we launch the container, let's make sure the assembled sequence is in our directory
-	
-	$ ls *
-	
-	Launch the container
 
-	$ ./dfam-tetools.sh
+	Create a new file with vim
+	
+	$ vi repeat_slurm.sh
+	
+	Once inside vi type 'i' for insertion mode and enter the following:
 
-	Now, we can build the database
-
-	$ BuildDatabase -name [species_name] [genome.fasta]
-	
-	For example, my command is
-	
-	$ BuildDatabase -name Odolichura ./GCA_022343505.1_ASM2234350v1_genomic.fna 
-	
-	Run RepeatModeler for de novo repeat identification and characterization
-
-	$ RepeatModeler -pa 8 -database [species_name]
-	
-	Here, I have formatted a slurm script for this portion:
-	
 	#!/bin/bash
 
 	#SBATCH --qos=pq_bsc4934-5935
@@ -76,37 +58,25 @@ On the FIU HPC we run this with the help of a software package called singularit
 	##########################################################
 	export OMP_NUM_THREADS=$SLURM_CPUS_ON_NODE
 	. $MODULESHOME/../global/profile.modules
-
-	module load singularity-3.8.2
-
-	curl -sSLO https://github.com/Dfam-consortium/TETools/raw/master/dfam-tetools.sh
-	chmod +x dfam-tetools.sh
-	./dfam-tetools.sh
-
-	BuildDatabase -name Odolichura GCA_022343505.1_ASM2234350v1_genomic.fna
-
-	RepeatModeler -pa 8 -database Odolichura
 	
-	While that runs we can create library of known repeats with RepeatMasker.
+	module load RepeatMasker-4.1.0
 
-	Use the queryRepeatDatabase.pl script inside RepeatMasker/util to extract Rhabditida repeats
+	RepeatMasker -lib Rhabditida.repeatmasker -pa 8 -xsmall -nolow [genome.fasta] 
 	
-	$ module load RepeatMasker-4.1.0
-
-	$ queryRepeatDatabase.pl -species rhabditida | grep -v "Species:" > Rhabditida.repeatmasker
-
-	Combine the files to create a library of de novo and known repeats
-
-	$ cat RM*/consensi.fa.classified Rhabditida.repeatmasker > [species_name].repeats
-
-Finally, we will use RepeatMasker to create a masked version of our assembled genome sequence. There are two versions of masking. Hard-masking means we replace every nucleotide in a repeat region with 'N' and soft-masking means we replace the normally capitalized nucleotides with lower-case nucleotides in repeat regions. Here we soft-mask (-xsmall) and do not mask low complexity elements (-nolow).
-
-	$ RepeatMasker -lib [species_name].repeats -pa 8 -xsmall -nolow [genome.fasta] 
+	```
+	Once you have finished this, type <escape> to enter command mode and then :wq to save your script and exit vi.
 	
-
+	Submit this to the FIU HPC with
+	
+	$ sbatch repeat_slurm.sh
+	
+	```
+	End for today! Great work team :)
+	
+	
 ### 5.1.2 [EDTA](https://github.com/oushujun/EDTA)
 
-
+	EDTA requires a list of coding sequences (CDS) so we will need to create protein-coding gene annotations then use these in characterizing repeats with EDTA.
 
 ### 5.2 Protein-coding gene annotation with BRAKER2
 
@@ -121,7 +91,7 @@ STAR --runThreadN 12 --genomeDir [species_dir] --outSAMtype BAM Unsorted --twopa
 --readFilesIn [File_1.fastq.gz] [File_2.fastq.gz] 
 ```
 
-#### 5.2.2 Run [BRAKER](http://exon.gatech.edu/genemark/braker1.html)
+#### 5.2.2 Run [BRAKER](http://exon.gatech.edu/genemark/braker1.html) with RNA-Seq evidence
 
 ```
 braker.pl \
@@ -135,7 +105,12 @@ braker.pl \
 --GENEMARK_PATH=[GENEMARK_dir] \
 --softmasking
 
-gtf2gff.pl < braker.gtf --gff3 --out=braker.gff3
+braker.pl --genome=genome.fasta.masked --hints=rna_seq_hints.gff \
+            --softmasking --species=species_name --workingdir=braker1_out
+### BRAKER2
+braker.pl --genome=genome.fasta.masked --prot_seq=proteins.fa \
+    --softmasking --species=species_name --epmode \
+    --workingdir=braker2_out
 ```
 
 After braker2 is finished we will create protein and fasta files from the native .gtf output. We can align the protein and/or mRNA sequences to the NCBI BLAST databases to check the validity of our annotations. We can also use Interproscan to annotate putative functional protein domains and use this as a validity measure.
