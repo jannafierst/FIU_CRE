@@ -49,7 +49,7 @@ Finally, we will use RepeatMasker to create a masked version of our assembled ge
 	#SBATCH -N 1
 
 	# Number of tasks
-	#SBATCH -n 6
+	#SBATCH -n 8
 
 	#SBATCH --output=log
 
@@ -91,7 +91,9 @@ STAR --runThreadN 12 --genomeDir [species_dir] --outSAMtype BAM Unsorted --twopa
 --readFilesIn [File_1.fastq.gz] [File_2.fastq.gz] 
 ```
 
-#### 5.2.2 Run [BRAKER](http://exon.gatech.edu/genemark/braker1.html) with RNA-Seq evidence
+#### 5.2.2 Run [BRAKER](http://exon.gatech.edu/genemark/braker1.html)
+
+First, with RNA-Seq evidence only
 
 ```
 braker.pl \
@@ -100,24 +102,34 @@ braker.pl \
 --cores=8 \
 --genome=[assembly.masked] \
 --bam=Aligned.out.bam \
---prot_seq=[protein.fasta] \
---prg=gth \
---GENEMARK_PATH=[GENEMARK_dir] \
 --softmasking
 
-braker.pl --genome=genome.fasta.masked --hints=rna_seq_hints.gff \
-            --softmasking --species=species_name --workingdir=braker1_out
+Then with protein evidence only
 ### BRAKER2
-braker.pl --genome=genome.fasta.masked --prot_seq=proteins.fa \
-    --softmasking --species=species_name --epmode \
-    --workingdir=braker2_out
+braker.pl \
+--workingdir=[output_dir] \
+--species=[species_name] \
+--cores=8 \
+--genome=[assembly.masked] \
+--prot_seq=proteins.fa \
+--softmasking \
+ --epmode
 ```
 
-After braker2 is finished we will create protein and fasta files from the native .gtf output. We can align the protein and/or mRNA sequences to the NCBI BLAST databases to check the validity of our annotations. We can also use Interproscan to annotate putative functional protein domains and use this as a validity measure.
+After braker2 is finished we will run Tsebra to integrate the two types of evidence
+
+./bin/tsebra.py -g braker1_out/augustus.hints.gtf,braker2_out/augustus.hints.gtf -c default.cfg \
+    -e braker1_out/hintsfile.gff,braker2_out/hintsfile.gff \
+    -o braker1+2_combined.gtf
 
 ```
+The native output of BRAKER2/Tsebra is .gtf. We need to get it into amore usable .gff3. We will use agat to create a .gff3
+
+$
+
+and extract the mRNA and protein sequences from the .gff3 and assembled genome sequences.
+
 #!/bin/bash
-
 
 DIR="[BRAKER2 .gtf location]"
 
