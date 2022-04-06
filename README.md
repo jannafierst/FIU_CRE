@@ -83,6 +83,8 @@ Finally, we will use RepeatMasker to create a masked version of our assembled ge
 #### 5.2.1 Align RNASeq with [STAR](https://github.com/alexdobin/STAR)
 
 ```
+We need to generate a STAR genome index and align our RNA-Seq with STAR. Challenge for today: can you create your own script to do this, given the file above and the commands below? The STAR module on FIU HPC is called star-2.7.9a and our RNA-Seq files are in /scratch/classroom. May the force be with you!
+
 # Generate genome index
 STAR --runThreadN 12 --runMode genomeGenerate --genomeDir [species_dir] --genomeSAindexNbases 12 --genomeFastaFiles [species_genome]
 
@@ -92,6 +94,69 @@ STAR --runThreadN 12 --genomeDir [species_dir] --outSAMtype BAM Unsorted --twopa
 ```
 
 #### 5.2.2 Run [BRAKER](http://exon.gatech.edu/genemark/braker1.html)
+
+BRAKER is not installed on the FIU HPC and we will obtain it through miniconda. Conda is a software management system that creates environments specific to individual software package needs.
+
+First, we will need to load the FIU HPC miniconda 
+
+	$ miniconda3-4.5.11-gcc-8.2.0-oqs2mbg
+	
+Then create a braker2 environment for our software
+
+	$ conda create --name braker2
+
+Activate your conda environment
+
+	$ conda activate braker2
+
+BRAKER requires a lot of custom software installations. First, we will install perl modules (this script is in /scratch/classroom/)
+
+	#!/bin/bash # Everything begins with a shebang!
+	
+	conda install -c anaconda perl
+	conda install -c bioconda perl-app-cpanminus
+	conda install -c bioconda perl-hash-merge
+	conda install -c bioconda perl-parallel-forkmanager
+	conda install -c bioconda perl-scalar-util-numeric
+	conda install -c bioconda perl-yaml
+	conda install -c bioconda perl-class-data-inheritable
+	conda install -c bioconda perl-exception-class
+	conda install -c bioconda perl-test-pod
+	conda install -c anaconda biopython
+	conda install -c bioconda perl-file-which # skip if you are not comparing to reference annotation
+	conda install -c bioconda perl-mce
+	conda install -c bioconda perl-threaded
+	conda install -c bioconda perl-list-util
+	conda install -c bioconda perl-math-utils
+	conda install -c bioconda cdbtools
+	
+Next we will unpack the braker2 software (also available here https://github.com/Gaius-Augustus/BRAKER#supported-software-versions)
+
+	$ cp /scratch/classroom/v2.1.6.tar.gz ~
+	
+	$ tar -xvf v2.1.6.tar.gz
+	
+Edit your .bashrc to include the BRAKER2 scripts
+
+	$ vi ~/.bashrc
+	
+	Press 'i' for insert mode, navigate to the bottom of the file and add
+	
+	# User specific aliases and functions
+	PATH=/home/[your username]/braker/BRAKER-2.1.6/scripts:$PATH
+	export PATH
+
+	Press <escape> to enter command line mode and :wq to save and quit.
+
+We will continue with software installation on Monday. Great work!
+
+#### End for Wednesday April 6 ####
+
+
+
+
+
+
 
 First, with RNA-Seq evidence only
 
