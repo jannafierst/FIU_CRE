@@ -73,6 +73,31 @@ Finally, we will use RepeatMasker to create a masked version of our assembled ge
 	```
 	End for today! Great work team :)
 	
+We can explore our RepeatMasker results a little, file by file. Use 'more' to view the contents and we can use grep (Global regular expression print) to search for text patterns. Here, we have asked RepeatMasker to produce a soft-masked file so we should have DNA characters (ACGT) in lower case (agct). We can, for example ask grep to count (-c)
+
+	$ grep [acgt] <your_genome.masked>
+
+Where <your_genome.masked> is the name of your masked .fasta file. We are asking grep to search for any of the characters within the brackets [] and we could search instead for any digit with [0-9] or any capital letter with [A-Z].  
+
+grep has a number of different options, view them with
+
+	$ man grep
+	
+To search for soft-masked sequence we can use a more compact option, -c. This asks grep to count
+
+	$ grep -c [acgt] <your_genome.masked>
+
+Importantly, grep is searching per line; to get an accurate count we can use fold to create single-character lines and then count lines with lowercase characters
+
+	$ fold -w 1 <your_genome.masked> | grep -c [act]
+	
+Remember the '|' operator from our first lectures? Try to experiment and see what happens when you use each command separately
+
+	$ fold -w 1 <your_genome.masked>
+	
+	$ fold -w 2 <your_genome.masked>
+
+Did you produce a soft-masked sequence?
 	
 ### 5.1.2 [EDTA](https://github.com/oushujun/EDTA)
 
