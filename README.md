@@ -83,7 +83,9 @@ Finally, we will use RepeatMasker to create a masked version of our assembled ge
 #### 5.2.1 Align RNASeq with [STAR](https://github.com/alexdobin/STAR)
 
 ```
-We need to generate a STAR genome index and align our RNA-Seq with STAR. Challenge for today: can you create your own script to do this, given the file above and the commands below? The STAR module on FIU HPC is called star-2.7.9a and our RNA-Seq files are in /scratch/classroom. May the force be with you!
+We need to generate a STAR genome index and align our RNA-Seq with STAR.
+Challenge for today: can you create your own script to do this, given the file above and the commands below?
+The STAR module on FIU HPC is called star-2.7.9a and our RNA-Seq files are in /scratch/classroom. May the force be with you!
 
 # Generate genome index
 STAR --runThreadN 12 --runMode genomeGenerate --genomeDir [species_dir] --genomeSAindexNbases 12 --genomeFastaFiles [species_genome]
