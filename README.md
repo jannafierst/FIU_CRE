@@ -99,7 +99,7 @@ BRAKER is not installed on the FIU HPC and we will obtain it through miniconda. 
 
 First, we will need to load the FIU HPC miniconda 
 
-	$ miniconda3-4.5.11-gcc-8.2.0-oqs2mbg
+	$ module load miniconda3-4.5.11-gcc-8.2.0-oqs2mbg
 	
 Then create a braker2 environment for our software
 
