@@ -163,7 +163,26 @@ Type
 
 	$ bash braker.sh
 	
-And see what happens. I am actually not sure what will happen! We are still testing the FIU HPC installation. If it doesn't work we move on to...
+And see what happens. I am actually not sure what will happen! We are still testing the FIU HPC installation. 
+
+If it does work we run braker2 in 2 steps
+
+First, with RNA-Seq evidence only (above)
+
+Then with protein evidence only
+
+	### BRAKER2
+	braker.pl \
+	--workingdir=[output_dir] \
+	--species=[species_name] \
+	--cores=8 \
+	--genome=[assembly.masked] \
+	--prot_seq=proteins.fa \
+	--softmasking \
+	--epmode
+	```
+
+If it doesn't work we move on to...
 
 ### 5.4 Functional annotation with Interproscan
 
@@ -187,8 +206,6 @@ interproscan.sh -i 356.protein.fasta -f tsv -dp -goterms -pa
 
 Here, I am asking interproscan (interproscan.sh) to perform functional annotation on my proteome (356.protein.fasta) including gene ontology annotations (-goterms) and pathway information (-pa). I am asking for a tab-separated output file (-f tsv) and -dp is disable precalculated lookup service, we will calculated everything fresh for this genome.
 
-
-
 If we have time we will also try to use AGAT for annotation statistics:
 
 ### 5.5 Annotation statistics with AGAT
@@ -207,69 +224,29 @@ AGAT(https://github.com/NBISweden/AGAT#installation) is a tool for annotation ed
 	agat_sp_statistics.pl --gff {file}.gff3
 
 
-
-
-
-	
-
-
-
-
-
-
-
-
-
-
-First, with RNA-Seq evidence only
-
-```
-braker.pl \
---workingdir=[output_dir] \
---species=[species_name] \
---cores=8 \
---genome=[assembly.masked] \
---bam=Aligned.out.bam \
---softmasking
-
-Then with protein evidence only
-### BRAKER2
-braker.pl \
---workingdir=[output_dir] \
---species=[species_name] \
---cores=8 \
---genome=[assembly.masked] \
---prot_seq=proteins.fa \
---softmasking \
- --epmode
-```
+#### 5.3.5 Run Tsebra with the braker2 RNA-Seq and protein outputs
 
 After braker2 is finished we will run Tsebra to integrate the two types of evidence
 
-./bin/tsebra.py -g braker1_out/augustus.hints.gtf,braker2_out/augustus.hints.gtf -c default.cfg \
-    -e braker1_out/hintsfile.gff,braker2_out/hintsfile.gff \
-    -o braker1+2_combined.gtf
+	./bin/tsebra.py -g braker1_out/augustus.hints.gtf,braker2_out/augustus.hints.gtf -c default.cfg \
+    	-e braker1_out/hintsfile.gff,braker2_out/hintsfile.gff \
+    	-o braker1+2_combined.gtf
 
 ```
-The native output of BRAKER2/Tsebra is .gtf. We need to get it into amore usable .gff3. We will use agat to create a .gff3
+The native output of BRAKER2/Tsebra is .gtf. We need to get it into amore usable .gff3. We will use agat to create a .gff3 and extract the mRNA and protein sequences from the .gff3 and assembled genome sequences.
 
-$
+	#!/bin/bash
 
-and extract the mRNA and protein sequences from the .gff3 and assembled genome sequences.
+	DIR="[BRAKER2 .gtf location]"
 
-#!/bin/bash
+	conda activate agatenv
 
-DIR="[BRAKER2 .gtf location]"
+	agat_sp_extract_sequences.pl -f ${DIR}_filtered.fasta --mrna -g braker.gff3 -o braker.mRNA.fasta
+	agat_sp_extract_sequences.pl -f ${DIR}_filtered.fasta -p -g braker.gff3 -o braker.protein.fasta
 
-conda activate agatenv
+	tblastn -db nt -query braker.protein.fasta \
+	-outfmt '6 qseqid qlen staxids bitscore std sscinames sskingdoms stitle' \
+	-num_threads 4 -evalue 0.01 -max_target_seqs 2 -out blast.out
+	```
 
-agat_sp_extract_sequences.pl -f ${DIR}_filtered.fasta --mrna -g braker.gff3 -o braker.mRNA.fasta
-agat_sp_extract_sequences.pl -f ${DIR}_filtered.fasta -p -g braker.gff3 -o braker.protein.fasta
-
-tblastn -db nt -query braker.protein.fasta \
--outfmt '6 qseqid qlen staxids bitscore std sscinames sskingdoms stitle' \
--num_threads 4 -evalue 0.01 -max_target_seqs 2 -out blast.out
-```
-
-#### 5.3.5 Run Tsebra with the braker2 RNA-Seq and protein outputs
 
