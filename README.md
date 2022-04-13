@@ -124,6 +124,49 @@ STAR --runThreadN 12 --genomeDir [species_dir] --outSAMtype BAM Unsorted --twopa
 
 BRAKER is not installed on the FIU HPC and we will obtain it through miniconda. Conda is a software management system that creates environments specific to individual software package needs.
 
+Update: this did not work. The installation is complex and too length for the span of the class. We will continue with a 'cooking class' approach and move to functional annotation and analysis.
+
+### 5.4 Functional annotation with Interproscan
+
+Now that we have a set of protein-coding gene annotations, what can we do with them?
+
+We still want to know what our genes and proteins may actually do and so for that we want to perform functional annotation. We will use the software Interproscan, it puts together a number of different approaches to identify protein domains with similarity to proteins with known functions. It will also associate any gene ontology terms (GO terms) and pathway information (KEGG pathways, Reactome). It is available on the FIU HPC as a module
+
+interproscan-5.55
+
+Your 'challenge' task for today is to generate scripts to run functional annotation on two sets of proteomes (proteins generated from protein-coding annotations) available in the /scratch/classroom directory. They are:
+
+caenorhabditis_remanei.PRJNA577507.WBPS16.protein.fa and 356.protein.fasta
+
+You can use your previous scripts as templates to:
+
+1) specify your slurm (#SBATCH) configuration options
+2) load the module
+3) generate interproscan annotations including GO terms and pathway information. Here is a sample command to do this:
+
+interproscan.sh -i 356.protein.fasta -f tsv -dp -goterms -pa
+
+Here, I am asking interproscan (interproscan.sh) to perform functional annotation on my proteome (356.protein.fasta) including gene ontology annotations (-goterms) and pathway information (-pa). I am asking for a tab-separated output file (-f tsv).
+
+If we have time we will also try to use AGAT for annotation statistics:
+
+### 5.5 Annotation statistics with AGAT
+
+AGAT(https://github.com/NBISweden/AGAT#installation) is a tool for annotation editing and evaluation. We will install via conda and use it to evaluate annotation statistics. AGAT creates conflicts with some other aspects of conda and we will install/activate it into its own environment to manage the conflicts.
+
+#### 5.4.1 Install AGAT via conda(https://anaconda.org/bioconda/agat)
+
+	conda create -n agatenv
+	conda activate agatenv
+	conda install -c bioconda agat
+
+#### 5.4.2 Count genes and other features
+
+	conda activate agatenv
+	agat_sp_statistics.pl --gff {file}.gff3
+
+
+
 First, we will need to load the FIU HPC miniconda 
 
 	$ module load miniconda3-4.5.11-gcc-8.2.0-oqs2mbg
@@ -177,7 +220,7 @@ Edit your .bashrc to include the BRAKER2 scripts
 
 We will continue with software installation on Monday. Great work!
 
-#### End for Wednesday April 6 ####
+
 
 
 
@@ -237,36 +280,3 @@ tblastn -db nt -query braker.protein.fasta \
 
 #### 5.3.5 Run Tsebra with the braker2 RNA-Seq and protein outputs
 
-
-
-### 5.4 Annotation statistics with AGAT
-
-AGAT(https://github.com/NBISweden/AGAT#installation) is a tool for annotation editing and evaluation. We will install via conda and use it to evaluate annotation statistics. AGAT creates conflicts with some other aspects of conda and we will install/activate it into its own environment to manage the conflicts.
-
-#### 5.4.1 Install AGAT via conda(https://anaconda.org/bioconda/agat)
-
-	conda create -n agatenv
-	conda activate agatenv
-	conda install -c bioconda agat
-
-#### 5.4.2 Count genes and other features
-
-	conda activate agatenv
-	agat_sp_statistics.pl --gff {file}.gff3
-
-### 5.5 Create pseudo-chromosomes with Ragtag
-
-Caenorhabditis have highly conserved chromosome structure and we expect that large-scale rearrangements have not occurred between closely related strains. This is an assumption and it may not be true but we will operate under this for now. If we assume this we can use RagTag (https://github.com/malonge/RagTag) to scaffold our fragmented assembly based on a chromosome-scale assembly for a close relative, C. remanei PX506 (https://www.ncbi.nlm.nih.gov/genome/253?genome_assembly_id=771236).
-
-RagTag is very fast, below is a script that can align our fragmented assembly to the chromosome-scale PX506 and create a new set of coordinates for our annotated genes.
-
-	#!/bin/bash
-	
-	GENOME=534
-
-	ragtag.py scaffold GCA_010183535.1_CRPX506_genomic.fna {GENOME}.fasta -t 8
-
-	ragtag.py updategff braker.gff3 ./ragtag_output/ragtag.scaffold.agp > ragtag.{GENOME}.gff3
-
-
-## PART 6: Upload data to NCBI
