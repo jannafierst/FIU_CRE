@@ -122,9 +122,48 @@ STAR --runThreadN 12 --genomeDir [species_dir] --outSAMtype BAM Unsorted --twopa
 
 #### 5.2.2 Run [BRAKER](http://exon.gatech.edu/genemark/braker1.html)
 
-BRAKER is not installed on the FIU HPC and we will obtain it through miniconda. Conda is a software management system that creates environments specific to individual software package needs.
+BRAKER is not installed on the FIU HPC and we will obtain it through miniconda. Conda (Anaconda) is a software management system that creates environments specific to individual software package needs. `miniconda' is a smaller version of conda.
 
-Update: this did not work. The installation is complex and too length for the span of the class. We will continue with a 'cooking class' approach and move to functional annotation and analysis.
+First, we will need to load the FIU HPC miniconda 
+
+	$ module load miniconda3-4.5.11-gcc-8.2.0-oqs2mbg
+
+Activate your conda environment
+
+	$ source activate braker2
+
+We will need to create a directory for our species manually because of the FIU HPC environment.
+
+	$ perl ~/.conda/envs/braker2/bin/new_species.pl --species=Odolichura
+	
+Copy the GENEMARK package and key from /scratch/classroom to your home directory
+
+	$ cp /scratch/classroom/gm* ~
+	
+Use the script below to test your installation (note it is a bash script not a slurm job script so we can't submit it to the compute nodes).
+
+Type vi braker.sh to create a file then 'i' for insertion mode and enter:
+
+	#!/bin/bash
+	
+	braker.pl \
+	--workingdir=~/braker \ # your directory with files
+	--species=Odolichura \
+	--cores=8 \
+	--genome=GCA_022343505.1_ASM2234350v1_genomic.fna.masked \
+	--bam=Aligned.out.bam \
+	--GENEMARK_PATH= ~/gmes_linux_64_4 \
+	--BAMTOOLS_PATH=/home/applications/spack/applications/gcc-8.2.0/bamtools-2.5.1-g5liqqe65vieinsy7unrb5lu5bflxtkx/bin \
+	--softmasking \
+	--useexisting
+	
+Hit <escape> to enter command mode and type :wq to save your file and quit vi.
+
+Type
+
+	$ bash braker.sh
+	
+And see what happens. I am actually not sure what will happen! We are still testing the FIU HPC installation. If it doesn't work we move on to...
 
 ### 5.4 Functional annotation with Interproscan
 
@@ -146,7 +185,9 @@ You can use your previous scripts as templates to:
 
 interproscan.sh -i 356.protein.fasta -f tsv -dp -goterms -pa
 
-Here, I am asking interproscan (interproscan.sh) to perform functional annotation on my proteome (356.protein.fasta) including gene ontology annotations (-goterms) and pathway information (-pa). I am asking for a tab-separated output file (-f tsv).
+Here, I am asking interproscan (interproscan.sh) to perform functional annotation on my proteome (356.protein.fasta) including gene ontology annotations (-goterms) and pathway information (-pa). I am asking for a tab-separated output file (-f tsv) and -dp is disable precalculated lookup service, we will calculated everything fresh for this genome.
+
+
 
 If we have time we will also try to use AGAT for annotation statistics:
 
@@ -167,58 +208,10 @@ AGAT(https://github.com/NBISweden/AGAT#installation) is a tool for annotation ed
 
 
 
-First, we will need to load the FIU HPC miniconda 
 
-	$ module load miniconda3-4.5.11-gcc-8.2.0-oqs2mbg
+
 	
-Then create a braker2 environment for our software
 
-	$ conda create --name braker2
-
-Activate your conda environment
-
-	$ conda activate braker2
-
-BRAKER requires a lot of custom software installations. First, we will install perl modules (this script is in /scratch/classroom/)
-
-	#!/bin/bash # Everything begins with a shebang!
-	
-	conda install -c anaconda perl
-	conda install -c bioconda perl-app-cpanminus
-	conda install -c bioconda perl-hash-merge
-	conda install -c bioconda perl-parallel-forkmanager
-	conda install -c bioconda perl-scalar-util-numeric
-	conda install -c bioconda perl-yaml
-	conda install -c bioconda perl-class-data-inheritable
-	conda install -c bioconda perl-exception-class
-	conda install -c bioconda perl-test-pod
-	conda install -c anaconda biopython
-	conda install -c bioconda perl-file-which # skip if you are not comparing to reference annotation
-	conda install -c bioconda perl-mce
-	conda install -c bioconda perl-threaded
-	conda install -c bioconda perl-list-util
-	conda install -c bioconda perl-math-utils
-	conda install -c bioconda cdbtools
-	
-Next we will unpack the braker2 software (also available here https://github.com/Gaius-Augustus/BRAKER#supported-software-versions)
-
-	$ cp /scratch/classroom/v2.1.6.tar.gz ~
-	
-	$ tar -xvf v2.1.6.tar.gz
-	
-Edit your .bashrc to include the BRAKER2 scripts
-
-	$ vi ~/.bashrc
-	
-	Press 'i' for insert mode, navigate to the bottom of the file and add
-	
-	# User specific aliases and functions
-	PATH=/home/[your username]/braker/BRAKER-2.1.6/scripts:$PATH
-	export PATH
-
-	Press <escape> to enter command line mode and :wq to save and quit.
-
-We will continue with software installation on Monday. Great work!
 
 
 
