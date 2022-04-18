@@ -206,6 +206,24 @@ interproscan.sh -i 356.protein.fasta -f tsv -dp -goterms -pa
 
 Here, I am asking interproscan (interproscan.sh) to perform functional annotation on my proteome (356.protein.fasta) including gene ontology annotations (-goterms) and pathway information (-pa). I am asking for a tab-separated output file (-f tsv) and -dp is disable precalculated lookup service, we will calculated everything fresh for this genome.
 
+### 5.5 Querying our functional annotations
+
+We completed our interproscan searches and have lists of genes with annotated protein domains. But what do these mean? We will first go through an example in class and discuss how to assign meaning to our results.
+
+We can use Unix tools to create compiled lists, for example:
+
+	$ cat braker.356.protein.edit.tsv | cut -f 1,12,13,14,15,16 | grep 'IPR' | sort | uniq | cut -f 2,3 | sort | uniq -c | sort -nr | tr -s '[:blank:]' | head -100
+
+Spend some time playing with this line and figuring out what each modular command does.
+
+Even with protein-coding annotations and functional annotations it's clear we still need more information! For that we will use BLAST and discuss today what BLAST is and how it works.
+
+
+
+
+
+
+
 If we have time we will also try to use AGAT for annotation statistics:
 
 ### 5.5 Annotation statistics with AGAT
