@@ -304,7 +304,7 @@ Use vi to create a new script
     
 Type 'i' for insertion mode and insert the following text:
 
-    	#!/bin/bash
+    #!/bin/bash
 
 	#SBATCH --qos=pq_bsc4934-5935
 	#SBATCH --account=acc_bsc4934-5935
@@ -331,7 +331,7 @@ Type 'i' for insertion mode and insert the following text:
 	##########################################################
 	##########################################################
 	
-    	blastp -db CELEG -query 356.protein.fasta.short > blast_output.txt
+    blastp -db CELEG -query 356.protein.fasta.short > blast_output.txt
 
 Save your script by hitting ‘escape’ and then ‘:wq’ to exit vi. Make the script executable:
 
@@ -374,6 +374,19 @@ What happens now? The columns tell you:
 12) bitscore
 
 What do you see in the results? Make sure you are running with and without the tabular format (-outfmt 6) so you can visualize the alignments as well as the matches.
+
+One thing you can see is the multiple alignments for each query. What if you want to limit it to the first, best hit? BLAST has parameters for that but it turns out they don't work! (See: https://academic.oup.com/bioinformatics/article/35/9/1613/5106166?login=true )
+
+We can use awk, a Unix text utility, for file manipulation. For example:
+
+	$ awk '!_[$1]++' $FILE # here, selecting the first entry of a set of duplicates based on the value in column 1
+
+	# calculate a column average
+
+	$ cat $FILE | awk '{sum=sum+$3} END {print sum/NR; sum = 0}' # Here, calculating an average for column 3
+
+	$ awk '$11 < 0.00001' $FILE # selecting all lines where column 11 is less than 0.00001 
+
 
 
 
