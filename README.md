@@ -218,31 +218,190 @@ Spend some time playing with this line and figuring out what each modular comman
 
 Even with protein-coding annotations and functional annotations it's clear we still need more information! For that we will use BLAST and discuss today what BLAST is and how it works.
 
+### 5.6 BLAST on the command line
+
+The NCBI Blast web interfaces (and other web interfaces) are convenient for single sequence queries but if we have many queries we want to deal with it quickly becomes tedious. Using BLAST on the HPC allows us to scale up our work and easily format the output. 
+
+Part of my research is studying how genes and proteins vary within populations and linking this variation to larger evolutionary patterns of change and conservation. We will take our annotated protein-coding genes and try to characterize near relatives in the model nematode *C. elegans.* * C. elegans* is one of the best-studied metazoan organisms and we know a lot about its genes and proteins.
+
+In order to identify the nearest relatives of each protein and the sequence-level changes that have occurred between the relatives we will use BLAST to identify orthologous (i.e., descended from the same ancestral sequence) proteins between *C. remanei* and *C. elegans.* We can also use the BLAST and interproscan results to evaluate our annotation results. For example, if <50% of our predicted proteins have functional annotations or orthologous proteins it's likely our annotations are poor quality and we need to work on fine-tuning our protocol.
+
+The first step is obtaining the set of *C. elegans* proteins. Navigate to WormBase Parasite https://parasite.wormbase.org/index.html and click on the 'Downloads' page. Right click on the link for FASTA under Proteins and click ‘Copy link location.’ Now go back to your HPC terminal and type
+
+    $ wget ***PASTE COPIED LINK IN HERE***
+
+Don’t actually type the part above in bold; paste the copied link in. You should have something like
+
+    $ wget https://ftp.ebi.ac.uk/pub/databases/wormbase/parasite/releases/WBPS16/species/caenorhabditis_elegans/PRJNA13758/caenorhabditis_elegans.PRJNA13758.WBPS16.protein.fa.gz
+
+wget and curl are two handy Unix programs that can help us download data from public sites. Once you hit return you should connect to the WormBase Parasite ftp site and download the file. It is zipped, so unzip it with 
+
+    $ gunzip *gz
+
+Memory jog - using our wildcard \* character here. 
+
+Take a look at the file and do some sanity checks. Use disk usage to check how large it is
+
+    $ du -h *fa
+
+and check how many lines and miRNA sequences you have. 
+
+    $ wc -l *fa
+    
+    $ grep -c ">" *.fa
+
+Here we are asking grep to count (-c) every instance of the .fasta header '>'. We can also get more specific and ask for lines that start with '>' with a '^' character. For regular expressions '^' denotes start of line and '$' denotes end of line. For example, try
+
+    $ grep -c "^>" *.fa
+   
+and 
+
+    $ grep -c ">$" *.fa
+    
+In the first command you are counting how many lines start with '>' and in the second command you are counting how many lines end with '>'. 
+
+We can now use our *C. elegans* file to create our own BLAST database. Before we set up our script it is helpful to look at a few parameters so we know what we are setting up. Load the blast module
+
+    $ module load blast-plus-2.7.1-gcc-8.2.0-fm5yf3k
+
+and type
+
+    $ module list
+
+to make sure it loads. Type 
+
+    $ blastp — -help
+
+to see a list of the parameters blast requires and/or accepts. Unix BLAST has high functionality but limited help. For example, we need to make a blast database with ‘makeblastdb’ but we can not actually get UNIX BLAST to give us these kind of instructions in the Unix system. 
+
+Why do we want to make our own database? First, the default BLAST databases don’t work well when we have very specific queries. Second, it will be much faster to run BLAST if our database is smaller (less to search) and the database is located in the same location as our working files (no input/output bottlenecks). 
+
+In order to see the parameters required and/or accepted in making a BLAST database type
+
+    $ makeblastdb
+
+What happens?
+
+Try 
+
+    $ makeblastdb -h
+
+What happens?
+
+Type 
+
+    $ makeblastdb -in ./caenorhabditis_elegans.PRJNA13758.WBPS16.protein.fa -dbtype prot -title CELEG -out CELEG
+
+You should see a series of files with CELEG.XXX names produced. These are the index files BLAST uses to accelerate database searching. Note that we were able to do this on the head node because it is a small file and runs quickly; we need to run the BLAST search through a script. Before we make our script look at the blastp options again. The most significant are ‘db’ for which database to search and ‘query’ for which file we want to search with.  
+
+I have created a shortened protein file so we can quickly evaluate our BLASTP output. Copy it from the /scratch/classroom to your home directory:
+
+	$ cp /scratch/classroom/356.protein.fasta.short ~
+
+Use vi to create a new script
+
+    	$ vi blast_script.sh
+    
+Type 'i' for insertion mode and insert the following text:
+
+    	#!/bin/bash
+
+	#SBATCH --qos=pq_bsc4934-5935
+	#SBATCH --account=acc_bsc4934-5935
+
+	# Specify number of unique nodes/servers
+	#SBATCH -N 1
+	# Specify the number of cores on a single node
+	#SBATCH --cpus-per-task=8
+	#SBATCH --threads-per-core=1
+
+	#SBATCH --output=log
+
+	##########################################################
+	# Setup envrionmental variable. 
+	##########################################################
+	. $MODULESHOME/../global/profile.modules
+	
+	module load blast-plus-2.7.1-gcc-8.2.0-fm5yf3k
+	export OMP_NUM_THREADS=$SLURM_CPUS_ON_NODE
+	pwd; hostname; date
+
+	scontrol show hostname $SLURM_JOB_NODELIST > `pwd`/machines
+
+	##########################################################
+	##########################################################
+	
+    	blastp -db CELEG -query 356.protein.fasta.short > blast_output.txt
+
+Save your script by hitting ‘escape’ and then ‘:wq’ to exit vi. Make the script executable:
+
+    	$ chmod +x blast_script.sh
+    
+and submit the script:
+
+    	$ sbatch blast_script.sh
+	
+What happens?
+
+It is sometimes easier to see what’s going on with a tabular output. Edit your script so the Blast line looks like this and run again:                         
+
+    blastp -db CELEG -outfmt 6 -query 356.protein.fasta.short > blast_output_tabular.txt
+
+What happens now? The columns tell you:
+
+1) Query
+
+2) Blast hit
+
+3) Percent match
+
+4) Length of aligned sequence
+
+5) Number of polymorphisms (mismatches)
+
+6) Gap score 
+
+7) Query start 
+
+8) Query end 
+
+9) Subject start
+
+10) Subject end
+
+11) e-value
+
+12) bitscore
+
+What do you see in the results? Make sure you are running with and without the tabular format (-outfmt 6) so you can visualize the alignments as well as the matches.
 
 
 
 
 
 
-If we have time we will also try to use AGAT for annotation statistics:
 
-### 5.5 Annotation statistics with AGAT
+
+
+
+
+### 6 Annotation statistics with AGAT
 
 AGAT(https://github.com/NBISweden/AGAT#installation) is a tool for annotation editing and evaluation. We will install via conda and use it to evaluate annotation statistics. AGAT creates conflicts with some other aspects of conda and we will install/activate it into its own environment to manage the conflicts.
 
-#### 5.4.1 Install AGAT via conda(https://anaconda.org/bioconda/agat)
+#### 6 Install AGAT via conda(https://anaconda.org/bioconda/agat)
 
 	conda create -n agatenv
 	conda activate agatenv
 	conda install -c bioconda agat
 
-#### 5.4.2 Count genes and other features
+#### 6 Count genes and other features
 
 	conda activate agatenv
 	agat_sp_statistics.pl --gff {file}.gff3
 
 
-#### 5.3.5 Run Tsebra with the braker2 RNA-Seq and protein outputs
+#### 6 Run Tsebra with the braker2 RNA-Seq and protein outputs
 
 After braker2 is finished we will run Tsebra to integrate the two types of evidence
 
